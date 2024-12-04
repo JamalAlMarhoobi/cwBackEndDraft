@@ -1,10 +1,10 @@
 {
-  "name": "cwBackEndDraft",
+  "name": "cwbackenddraft",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start":"node server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,5 +15,13 @@
     "lodash": "^4.17.21",
     "mongodb": "^3.6.3",
     "mustache": "^4.2.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JamalAlMarhoobi/cwBackEndDraft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JamalAlMarhoobi/cwBackEndDraft/issues"
+  },
+  "homepage": "https://github.com/JamalAlMarhoobi/cwBackEndDraft#readme"
 }
