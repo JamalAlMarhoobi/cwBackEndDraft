@@ -3,6 +3,7 @@ const express = require('express')
 const app = express()
 
 app.use(express.json())
+app.use(express.static("public"));
 app.set('port', 3000)
 
 app.use((req, res, next) => {
@@ -23,6 +24,10 @@ MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mong
     if (err) throw err;
     db = client.db('webStore');
 });
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  });
 
 app.get('/', (req, res, next) => {
     res.send('Select a collection, e.g., /collection/messages');
