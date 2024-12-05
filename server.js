@@ -26,7 +26,7 @@ MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mong
 });
 
 app.get("/images/:image", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+    res.sendFile(path.join(__dirname, "", "index.html"));
 });
 
 app.get('/', (req, res, next) => {
