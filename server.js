@@ -3,7 +3,7 @@ const express = require('express')
 const app = express()
 
 app.use(express.json())
-//app.use(express.static("images"));
+app.use(express.static("images"));
 app.set('port', 3000)
 
 app.use((req, res, next) => {
@@ -25,9 +25,9 @@ MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mong
     db = client.db('webStore');
 });
 
-/*app.get("/", (req, res) => {
+app.get("/images/:image", (req, res) => {
     res.sendFile(path.join(__dirname, "images", "index.html"));
-});*/
+});
 
 app.get('/', (req, res, next) => {
     res.send('Select a collection, e.g., /collection/messages');
