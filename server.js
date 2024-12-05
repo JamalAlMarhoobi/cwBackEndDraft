@@ -25,7 +25,7 @@ MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mong
     db = client.db('webStore');
 });
 
-app.get("/images/:image", (req, res) => {
+app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "images", "index.html"));
   });
 
