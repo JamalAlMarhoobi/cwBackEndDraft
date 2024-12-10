@@ -78,6 +78,19 @@ app.get('/collection/:collectionName/:id', (req, res, next) => {
     });
 });
 
+// Search Functionality
+app.get('/search', (req, res, next) => {
+    const { query } = req.query; // Extract search query from the request
+    const regex = new RegExp(query, 'i'); // Create a case-insensitive regex for partial matching
+
+    db.collection('curriculums') // Target the 'curriculums' collection
+        .find({ $or: [{ subject: regex }, { location: regex }] }) // Match either subject or location fields
+        .toArray((err, results) => {
+            if (err) return next(err);
+            res.send(results); // Send the matching results back as JSON
+        });
+});
+
 // Insert a Document into a Collection
 app.post('/collection/:collectionName', async (req, res, next) => {
     try {
