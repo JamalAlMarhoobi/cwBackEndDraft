@@ -1,72 +1,97 @@
-const express = require('express')
-const path = require('path'); // Import Path to handle static files
-const app = express()
+const express = require('express'); // Import Express for backend framework
+const path = require('path'); // Import Path for handling static files
+const MongoClient = require('mongodb').MongoClient; // Import MongoClient for MongoDB connection
+const ObjectID = require('mongodb').ObjectID; //Import ObjectID to handle MongoDB document IDs
 
-app.use(express.json())
-app.use(express.static("static"));
-app.set('port', 3000)
+const app = express(); // Create an instance of Express
 
+// Middleware Configuration
+app.use(express.json()); // Parse incoming JSON requests
+app.use(express.static("static")); // Serve static files
+app.set('port', 3000); // Set the default port to 3000
+
+// CORS Configuration
+// Middleware for setting headers for CORS and allowed methods
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
     res.setHeader('Access-Control-Allow-Credentials', "true");
     res.setHeader('Access-Control-Allow-Methods', "GET, HEAD, OPTIONS, POST, PUT");
-    res.setHeader('Access-Control-Allow-Headers', "Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-
-    next();
-})
-
-const MongoClient = require('mongodb').MongoClient;
-const ObjectID = require('mongodb').ObjectID;
-
-let db;
-
-MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mongodb.net', (err, client) => {
-    if (err) {
-        console.error("Error connecting to MongoDB:", err); // Log connection errors
-        process.exit(1); // Exit the process if the connection fails
-    }
-    db = client.db('webStore');
-    console.log("Connected to MongoDB successfully."); // Log successful connection
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        "Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
+    );
+    next(); // Proceed to the next middleware
 });
 
+// Database Connection
+let db;
+MongoClient.connect('mongodb+srv://JamalMar:Shon%40tives95@cluster0.vr3h8ps.mongodb.net', (err, client) => {
+    if (err) {
+        console.error("Error connecting to MongoDB:", err);
+        process.exit(1); // Exit if the connection fails
+    }
+    db = client.db('webStore'); // Connect to the "webStore" database
+    console.log("Connected to MongoDB successfully.");
+});
+
+// Routes
+
+// Root Route
+app.get('/', (req, res) => {
+    console.log("Root endpoint accessed.");
+    res.send('Select a collection, e.g., /collection/messages');
+});
+
+// Image Serving Route
 app.get("/images/:image", (req, res) => {
     res.sendFile(path.join(__dirname, "static", "index.html"));
 });
 
-app.get('/', (req, res, next) => {
-    console.log("Root endpoint accessed"); // Log root access
-    res.send('Select a collection, e.g., /collection/messages');
-});
-
+// Parameter Middleware
+// Handles dynamic collection names in routes
 app.param('collectionName', (req, res, next, collectionName) => {
-    req.collection = db.collection(collectionName);
-    return next();
+    req.collection = db.collection(collectionName); // Bind the collection to the request
+    next();
 });
 
+// Fetch All Documents in a Collection
 app.get('/collection/:collectionName', (req, res, next) => {
     req.collection.find({}).toArray((err, results) => {
         if (err) {
-            console.error("Error fetching documents:", err); // Log fetch errors
-            return next(err); // Pass the error to the error-handling middleware
+            console.error("Error fetching documents:", err);
+            return next(err);
         }
-        console.log(`Fetched ${results.length} documents from ${req.params.collectionName}`); // Log the number of documents fetched
-        res.send(results);
+        console.log(`Fetched ${results.length} documents from ${req.params.collectionName}`);
+        res.send(results); // Return all documents as JSON
     });
 });
 
+// Fetch a Single Document by ID
+app.get('/collection/:collectionName/:id', (req, res, next) => {
+    req.collection.findOne({ _id: new ObjectID(req.params.id) }, (err, result) => {
+        if (err) {
+            console.error("Error fetching document:", err);
+            return next(err);
+        }
+        console.log(`Fetched document from ${req.params.collectionName}:`, result);
+        res.send(result); // Return the document as JSON
+    });
+});
+
+// Insert a Document into a Collection
 app.post('/collection/:collectionName', async (req, res, next) => {
     try {
         const { collectionName } = req.params;
 
-        // Insert the order into the "orders" collection
         if (collectionName === 'orders') {
+            // Handle orders specifically
             const { orderedItems } = req.body;
 
             // Update available spaces in curriculums
             const updates = orderedItems.map(async (item) => {
                 await db.collection('curriculums').updateOne(
                     { id: item.id },
-                    { $inc: { spaces: -item.quantity } }
+                    { $inc: { spaces: -item.quantity } } // Decrease spaces
                 );
             });
 
@@ -75,52 +100,55 @@ app.post('/collection/:collectionName', async (req, res, next) => {
 
             // Insert the order into the orders collection
             const result = await req.collection.insertOne(req.body);
-            console.log("Order inserted successfully:", result.ops[0]); // Log the inserted order
-            return res.send(result.ops[0]);
+            console.log("Order inserted successfully:", result.ops[0]);
+            return res.send(result.ops[0]); // Return the inserted order
         }
 
-        // Default insert behavior
+        // Default behavior for other collections
         const result = await req.collection.insertOne(req.body);
-        console.log(`Document inserted into ${collectionName} collection:`, result.ops[0]); // Log the inserted document
+        console.log(`Document inserted into ${collectionName} collection:`, result.ops[0]);
         res.send(result.ops[0]);
     } catch (err) {
-        console.error("Error inserting document:", err); // Log insertion errors
+        console.error("Error inserting document:", err);
         next(err);
     }
 });
 
-app.get('/collection/:collectionName/:id', (req, res, next) => {
-    req.collection.findOne({ _id: new ObjectID(req.params.id) }, (err, result) => {
-        if (err) {
-            console.error("Error fetching document:", err); // Log fetch errors
-            return next(err); // Pass the error to the error-handling middleware
-        }
-        console.log(`Fetched document from ${req.params.collectionName}:`, result); // Log the fetched document
-        res.send(result);
-    });
-});
-
+// Update a Document by ID
 app.put('/collection/:collectionName/:id', (req, res, next) => {
-    req.collection.updateOne({ _id: new ObjectID(req.params.id) }, { $set: req.body }, { safe: true, multi: false }, (err, result) => {
-        if (err) {
-            console.error("Error updating document:", err); // Log update errors
-            return next(err); // Pass the error to the error-handling middleware
+    req.collection.updateOne(
+        { _id: new ObjectID(req.params.id) },
+        { $set: req.body }, // Update fields
+        { safe: true, multi: false },
+        (err, result) => {
+            if (err) {
+                console.error("Error updating document:", err);
+                return next(err);
+            }
+            console.log(`Updated document in ${req.params.collectionName}:`, req.body);
+            res.send(result.modifiedCount === 1 ? { msg: 'success' } : { msg: 'error' });
         }
-        console.log(`Updated document in ${req.params.collectionName}:`, req.body); // Log the updated document
-        res.send(result.modifiedCount === 1 ? { msg: 'success' } : { msg: 'error' });
-    });
+    );
 });
 
+// Delete a Document by ID
 app.delete('/collection/:collectionName/:id', (req, res, next) => {
     req.collection.deleteOne({ _id: ObjectID(req.params.id) }, (err, result) => {
         if (err) {
-            console.error("Error deleting document:", err); // Log deletion errors
-            return next(err); // Pass the error to the error-handling middleware
+            console.error("Error deleting document:", err);
+            return next(err);
         }
-        console.log(`Deleted document from ${req.params.collectionName}`); // Log the deletion
+        console.log(`Deleted document from ${req.params.collectionName}`);
         res.send(result.deletedCount === 1 ? { msg: 'success' } : { msg: 'error' });
     });
 });
 
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error("Unhandled error:", err); // Log the error
+    res.status(500).send({ error: 'Something went wrong!' }); // Respond with a generic error
+});
+
+// Start the Server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
